@@ -1,0 +1,95 @@
+:root {
+  --tl-bg: linear-gradient(135deg, #f8fafc 0%, #eef2ff 45%, #f0fdf4 100%);
+  --tl-header: linear-gradient(90deg, #312e81 0%, #4f46e5 50%, #0d9488 100%);
+  --tl-shadow: 0 8px 32px rgba(79, 70, 229, 0.12);
+}
+
+body {
+  background: var(--tl-bg);
+  min-height: 100vh;
+}
+
+@keyframes tl-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tl-pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes tl-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.tl-animate-in {
+  animation: tl-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tl-stagger-1 {
+  animation-delay: 0.05s;
+}
+.tl-stagger-2 {
+  animation-delay: 0.1s;
+}
+.tl-stagger-3 {
+  animation-delay: 0.15s;
+}
+.tl-stagger-4 {
+  animation-delay: 0.2s;
+}
+
+.tl-loading-bar {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #6366f1, #14b8a6, transparent);
+  background-size: 200% 100%;
+  animation: tl-shimmer 1.2s linear infinite;
+}
+
+.tl-header-glass {
+  background: var(--tl-header);
+  box-shadow: var(--tl-shadow);
+}
+
+.tl-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tl-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.15);
+}
+
+.tl-tooltip {
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.tl-path-enter {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: tl-draw 0.8s ease forwards;
+}
+
+@keyframes tl-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
