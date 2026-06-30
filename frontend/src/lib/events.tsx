@@ -57,11 +57,3 @@ export const HIGHLIGHT_LABELS: Record<string, string> = {
   attention: "Atenção",
   neutral: "Neutro",
 };
-
-export const SIMPLIFICATION_LABELS: Record<string, string> = {
-  multilevel: "Níveis temporais (início/fim do prazo)",
-  coalescing_repeating: "Unificar repetições consecutivas",
-  coalescing_hidden: "Ocultar passos intermediários do fluxo",
-  spell: "Agrupar repetições (algumas / muitas)",
-  temporal_folding: "Dobrar em sessões de estudo",
-};

@@ -35,6 +35,7 @@ Se aparecer `socket hang up` no frontend, reconstrua as imagens (`docker compose
 
 ```bash
 cd backend
+pip install -e ../spm-preprocessing
 pip install -r requirements.txt
 set TL_DATA_DIR=..\data   # Windows
 uvicorn app.main:app --reload --port 8000
@@ -62,13 +63,9 @@ Documentação interativa em **http://localhost:8000/docs** (Swagger).
 | POST   | `/api/timeline` | Sequências processadas + KPIs + stories      |
 | GET    | `/api/stories`  | Preview de narrativas por atividade            |
 
-### Simplificações (body `simplification`)
+### Cenário de simplificação (body `scenario`)
 
-- `multilevel` — sufixos `_START` / `_END` na metade do prazo  
-- `coalescing_repeating` — remove repetições adjacentes  
-- `coalescing_hidden` — oculta passos intermediários (vis→try→sub)  
-- `spell` — agrega spells `_SOME` / `_MANY`  
-- `temporal_folding` — quebra em sessões (gap 1h)
+A simplificação usa a biblioteca **spm-preprocessing** (`spm.simplify`). O campo `scenario` é um inteiro de **0 a 23**, correspondente à matriz de 24 cenários do experimento (ex.: `7` = ocultar passos intermediários). A lista completa está em `GET /api/meta` → `scenarios`.
 
 ### Stories
 
@@ -80,7 +77,8 @@ Regras **R4–R44** (subset implementado) avaliam inatividade pré-deadline, sub
 ws-mestrado/
 ├── data/                 # CSVs (não versionar se grandes)
 ├── backend/app/
-│   ├── event_pipeline.py # Pré-processamento de sequências
+│   ├── sequence.py       # Ponte para spm-preprocessing (simplify)
+│   ├── event_pipeline.py # Declutter visual (não é simplificação SPM)
 │   ├── stories.py        # Motor de narrativas
 │   ├── services.py       # Timeline + KPIs
 │   └── main.py           # FastAPI

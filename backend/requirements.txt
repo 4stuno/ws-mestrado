@@ -5,3 +5,4 @@ numpy==2.1.3
 pydantic==2.10.3
 pydantic-settings==2.6.1
 python-multipart==0.0.17
+prefixspan==0.5.2

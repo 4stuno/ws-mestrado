@@ -43,10 +43,6 @@ def sequences_cache_key(params: dict) -> str:
             "assignment_id": params.get("assignment_id"),
             "t_start": params.get("initial_date"),
             "t_end": params.get("final_date"),
-            "multilevel": params.get("multilevel"),
-            "coalescing_repeating": params.get("coalescing_repeating"),
-            "coalescing_hidden": params.get("coalescing_hidden"),
-            "spell": params.get("spell"),
-            "tf": params.get("tf"),
+            "scenario": params.get("scenario"),
         },
     )

@@ -23,16 +23,12 @@ import { ParallelTimeline } from "@/components/ParallelTimeline";
 import { StoriesPanel } from "@/components/StoriesPanel";
 import { KpiBar } from "@/components/KpiBar";
 import { ActivityChart } from "@/components/ActivityChart";
+import { TimelineStatus, type TimelineLoadPhase } from "@/components/TimelineStatus";
+import { findScenario, scenarioDisplayName } from "@/lib/scenarios";
 
 const defaultFilters: TimelineRequest = {
   assignment_id: 12841,
-  simplification: {
-    multilevel: false,
-    coalescing_repeating: false,
-    coalescing_hidden: true,
-    spell: false,
-    temporal_folding: false,
-  },
+  scenario: 7,
   thresholds: {
     low_grade: 0.5,
     high_grade: 0.75,
@@ -51,28 +47,58 @@ const defaultFilters: TimelineRequest = {
 export default function DashboardPage() {
   const [meta, setMeta] = useState<MetaResponse | null>(null);
   const [filters, setFilters] = useState<TimelineRequest>(defaultFilters);
-  const [debouncedFilters] = useDebouncedValue(filters, 450);
+  const [debouncedFilters] = useDebouncedValue(filters, 350);
   const [data, setData] = useState<TimelineResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadPhase, setLoadPhase] = useState<TimelineLoadPhase>("idle");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  const [timelineRevision, setTimelineRevision] = useState(0);
   const requestId = useRef(0);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadTimeline = useCallback(async (req: TimelineRequest) => {
+  const filtersPending = JSON.stringify(filters) !== JSON.stringify(debouncedFilters);
+  const isBusy = loading || filtersPending;
+
+  const loadTimeline = useCallback(async (req: TimelineRequest, metaSnapshot: MetaResponse | null) => {
     const id = ++requestId.current;
     setLoading(true);
+    setLoadPhase("loading");
     setError(null);
+    setSuccessMessage(null);
+    if (successTimer.current) clearTimeout(successTimer.current);
+
     try {
       const res = await postTimeline(req);
-      if (id === requestId.current) {
-        setData(res);
-        if (req.user_ids?.length === 1) {
-          setSelectedUser(req.user_ids[0]);
-        }
+      if (id !== requestId.current) return;
+
+      setData(res);
+      setTimelineRevision((r) => r + 1);
+
+      if (req.user_ids?.length === 1) {
+        setSelectedUser(req.user_ids[0]);
       }
+
+      const scenario = findScenario(metaSnapshot?.scenarios, req.scenario);
+      const scenarioLabel = scenario
+        ? scenarioDisplayName(scenario, metaSnapshot?.default_scenario ?? 7)
+        : "cenário selecionado";
+      const quizName = res.quiz?.name ? ` · ${res.quiz.name}` : "";
+      const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+      setSuccessMessage(
+        `${res.kpis.users_filtered} alunos exibidos · ${scenarioLabel}${quizName} · ${time}`,
+      );
+      setLoadPhase("success");
+      successTimer.current = setTimeout(() => {
+        setLoadPhase("idle");
+        setSuccessMessage(null);
+      }, 6000);
     } catch (e) {
       if (id === requestId.current) {
         setError(e instanceof Error ? e.message : "Não foi possível carregar a timeline.");
+        setLoadPhase("error");
       }
     } finally {
       if (id === requestId.current) setLoading(false);
@@ -81,14 +107,25 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getMeta()
-      .then(setMeta)
+      .then((m) => {
+        setMeta(m);
+        if (m.default_scenario != null) {
+          setFilters((f) => ({ ...f, scenario: m.default_scenario }));
+        }
+      })
       .catch((e) => setError(e instanceof Error ? e.message : "Erro ao carregar metadados."));
   }, []);
 
   useEffect(() => {
     if (!meta) return;
-    loadTimeline(debouncedFilters);
+    loadTimeline(debouncedFilters, meta);
   }, [meta, debouncedFilters, loadTimeline]);
+
+  useEffect(() => {
+    if (filtersPending && !loading) {
+      setLoadPhase("pending");
+    }
+  }, [filtersPending, loading]);
 
   useEffect(() => {
     if (filters.user_ids?.length !== 1) {
@@ -126,9 +163,14 @@ export default function DashboardPage() {
             </div>
           </Group>
           <Group gap="sm">
-            {loading && (
+            {isBusy && (
               <Badge variant="white" color="dark" leftSection={<Loader size={10} color="indigo" />}>
-                Atualizando...
+                {filtersPending && !loading ? "Aplicando filtros…" : "Processando…"}
+              </Badge>
+            )}
+            {!isBusy && loadPhase === "success" && (
+              <Badge variant="white" color="teal">
+                Atualizado
               </Badge>
             )}
             <Badge variant="light" color="gray" style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}>
@@ -136,7 +178,7 @@ export default function DashboardPage() {
             </Badge>
           </Group>
         </Group>
-        {loading && <Box className="tl-loading-bar" style={{ position: "absolute", bottom: 0, left: 0, right: 0 }} />}
+        {isBusy && <Box className="tl-loading-bar" style={{ position: "absolute", bottom: 0, left: 0, right: 0 }} />}
       </AppShell.Header>
 
       <AppShell.Main>
@@ -145,6 +187,16 @@ export default function DashboardPage() {
             {error}
           </Alert>
         )}
+
+        <TimelineStatus
+          phase={loadPhase}
+          successMessage={successMessage}
+          onDismissSuccess={() => {
+            setLoadPhase("idle");
+            setSuccessMessage(null);
+            if (successTimer.current) clearTimeout(successTimer.current);
+          }}
+        />
 
         <Grid gutter="lg">
           <Grid.Col span={{ base: 12, md: 3 }}>
@@ -162,7 +214,12 @@ export default function DashboardPage() {
                 overflowY: "auto",
               }}
             >
-              <FilterPanel meta={meta} filters={filters} onChange={setFilters} />
+              <FilterPanel
+                meta={meta}
+                filters={filters}
+                onChange={setFilters}
+                filtersPending={filtersPending}
+              />
             </Paper>
           </Grid.Col>
 
@@ -214,12 +271,40 @@ export default function DashboardPage() {
                   </Stack>
                 ) : data ? (
                   <>
-                    <ParallelTimeline
-                      users={data.users}
-                      eventClasses={data.event_classes}
-                      selectedUserId={selectedUser}
-                      onSelectUser={setSelectedUser}
-                    />
+                <Box style={{ position: "relative" }}>
+                  {isBusy && data && (
+                    <Box
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: 10,
+                        background: "rgba(255,255,255,0.72)",
+                        backdropFilter: "blur(2px)",
+                        borderRadius: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Stack align="center" gap="sm">
+                        <Loader color="indigo" size="lg" type="dots" />
+                        <Text c="dimmed" size="sm" fw={500}>
+                          {filtersPending && !loading
+                            ? "Aplicando seus filtros…"
+                            : "Gerando trajetórias no servidor…"}
+                        </Text>
+                      </Stack>
+                    </Box>
+                  )}
+
+                  <ParallelTimeline
+                    key={timelineRevision}
+                    users={data.users}
+                    eventClasses={data.event_classes}
+                    selectedUserId={selectedUser}
+                    onSelectUser={setSelectedUser}
+                  />
+                </Box>
                     <Group gap="md" mt="md">
                       <Badge color="red" variant="dot">
                         Vermelho — risco
@@ -235,7 +320,7 @@ export default function DashboardPage() {
                 ) : null}
               </Paper>
 
-              {data && !loading && (
+              {data && !isBusy && (
                 <Grid gutter="lg" className="tl-animate-in tl-stagger-3">
                   <Grid.Col span={{ base: 12, md: 4 }}>
                     <Paper

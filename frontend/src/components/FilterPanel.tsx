@@ -2,6 +2,7 @@
 
 import {
   Accordion,
+  Alert,
   Autocomplete,
   Badge,
   Group,
@@ -16,22 +17,24 @@ import {
   Title,
 } from "@mantine/core";
 import { IconAdjustments, IconFilter, IconUser } from "@tabler/icons-react";
-import type { MetaResponse, SimplificationOptions, TimelineRequest } from "@/lib/types";
-import { getEventMeta, SIMPLIFICATION_LABELS } from "@/lib/events";
+import type { MetaResponse, TimelineRequest } from "@/lib/types";
+import { getEventMeta } from "@/lib/events";
+import {
+  buildScenarioSelectData,
+  findScenario,
+  scenarioDescription,
+  scenarioDisplayName,
+} from "@/lib/scenarios";
 
 interface Props {
   meta: MetaResponse | null;
   filters: TimelineRequest;
   onChange: (f: TimelineRequest) => void;
+  filtersPending?: boolean;
 }
 
-export function FilterPanel({ meta, filters, onChange }: Props) {
-  const setSimp = (key: keyof SimplificationOptions, v: boolean) => {
-    onChange({
-      ...filters,
-      simplification: { ...filters.simplification, [key]: v },
-    });
-  };
+export function FilterPanel({ meta, filters, onChange, filtersPending }: Props) {
+  const defaultScenario = meta?.default_scenario ?? 7;
 
   const studentOptions =
     meta?.students?.map((s) => ({
@@ -43,6 +46,9 @@ export function FilterPanel({ meta, filters, onChange }: Props) {
     filters.user_ids?.[0] != null
       ? studentOptions.find((o) => o.value === String(filters.user_ids![0]))?.label ?? ""
       : "";
+
+  const scenarioSelectData = buildScenarioSelectData(meta?.scenarios ?? [], defaultScenario);
+  const selectedScenario = findScenario(meta?.scenarios, filters.scenario);
 
   const classOptions =
     meta?.event_class_order.map((c) => {
@@ -61,6 +67,12 @@ export function FilterPanel({ meta, filters, onChange }: Props) {
         </ThemeIcon>
         <Title order={4}>Filtros e parâmetros</Title>
       </Group>
+
+      {filtersPending && (
+        <Badge variant="light" color="blue" size="sm" fullWidth>
+          Filtros alterados — atualizando em breve…
+        </Badge>
+      )}
 
       <Autocomplete
         label="Aluno"
@@ -135,20 +147,33 @@ export function FilterPanel({ meta, filters, onChange }: Props) {
         clearable
       />
 
-      <Accordion variant="separated" radius="md">
+      <Accordion variant="separated" radius="md" defaultValue="simp">
         <Accordion.Item value="simp">
           <Accordion.Control icon={<IconAdjustments size={16} />}>Simplificação da sequência</Accordion.Control>
           <Accordion.Panel>
             <Stack gap="sm">
-              {(Object.keys(SIMPLIFICATION_LABELS) as (keyof SimplificationOptions)[]).map((key) => (
-                <Switch
-                  key={key}
-                  label={SIMPLIFICATION_LABELS[key]}
-                  checked={filters.simplification[key]}
-                  onChange={(e) => setSimp(key, e.currentTarget.checked)}
-                  styles={{ label: { cursor: "pointer" } }}
-                />
-              ))}
+              <Select
+                label="Como simplificar os eventos?"
+                description="Escolha o conjunto de técnicas aplicadas à sequência de cada aluno"
+                searchable
+                data={scenarioSelectData}
+                value={String(filters.scenario)}
+                onChange={(v) =>
+                  onChange({ ...filters, scenario: v ? Number(v) : defaultScenario })
+                }
+                maxDropdownHeight={320}
+                nothingFoundMessage="Nenhum cenário encontrado"
+              />
+              {selectedScenario && (
+                <Alert variant="light" color="indigo" radius="md" p="sm">
+                  <Text size="sm" fw={600} mb={4}>
+                    {scenarioDisplayName(selectedScenario, defaultScenario)}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {scenarioDescription(selectedScenario)}
+                  </Text>
+                </Alert>
+              )}
             </Stack>
           </Accordion.Panel>
         </Accordion.Item>

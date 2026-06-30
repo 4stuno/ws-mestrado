@@ -4,50 +4,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------
-# Opções de simplificação e limiares
+# Cenários de simplificação (spm-preprocessing) e limiares
 # ---------------------------------------------------------------------------
 
-
-class SimplificationOptions(BaseModel):
-    """Opções de simplificação da sequência de eventos (equivalentes às flags CLI)."""
-
-    multilevel: bool = Field(
-        False,
-        description="Divide eventos em _START / _END conforme metade do prazo da atividade.",
-        examples=[False],
-    )
-    coalescing_repeating: bool = Field(
-        False,
-        description="Remove repetições consecutivas do mesmo tipo de evento.",
-        examples=[False],
-    )
-    coalescing_hidden: bool = Field(
-        False,
-        description="Oculta passos intermediários do fluxo (ex.: assignment_vis antes de try/sub).",
-        examples=[True],
-    )
-    spell: bool = Field(
-        False,
-        description="Agrupa repetições em _SOME (3–5) ou _MANY (>5). Desativa coalescing_repeating.",
-        examples=[False],
-    )
-    temporal_folding: bool = Field(
-        False,
-        description="Quebra a sequência em sessões quando o intervalo entre eventos > 1h.",
-        examples=[False],
-    )
-
-    model_config = ConfigDict(json_schema_extra={
-        "examples": [
-            {
-                "multilevel": False,
-                "coalescing_repeating": False,
-                "coalescing_hidden": True,
-                "spell": False,
-                "temporal_folding": False,
-            }
-        ]
-    })
+DEFAULT_SCENARIO = 7  # "7-seventh" — coalescing_hidden apenas
 
 
 class ThresholdOptions(BaseModel):
@@ -92,7 +52,13 @@ class TimelineRequest(BaseModel):
         None,
         description="Segmento de desempenho ou tendência.",
     )
-    simplification: SimplificationOptions = Field(default_factory=SimplificationOptions)
+    scenario: int = Field(
+        DEFAULT_SCENARIO,
+        ge=0,
+        le=23,
+        description="Cenário de simplificação (0–23), matriz do spm-preprocessing.",
+        examples=[7],
+    )
     thresholds: ThresholdOptions = Field(default_factory=ThresholdOptions)
     declutter_mode: Literal["none", "first_class", "limit_users"] = Field(
         "none",
@@ -110,13 +76,7 @@ class TimelineRequest(BaseModel):
                 "cities": None,
                 "event_classes": None,
                 "segment": None,
-                "simplification": {
-                    "multilevel": False,
-                    "coalescing_repeating": False,
-                    "coalescing_hidden": True,
-                    "spell": False,
-                    "temporal_folding": False,
-                },
+                "scenario": 7,
                 "thresholds": {
                     "low_grade": 0.5,
                     "high_grade": 0.75,
@@ -254,6 +214,17 @@ class ThresholdDefaults(BaseModel):
     resource_prep_days: int
 
 
+class ScenarioMeta(BaseModel):
+    id: int
+    path: str
+    label: str
+    multilevel: bool = False
+    spell: bool = False
+    coalescing_repeating: bool = False
+    coalescing_hidden: bool = False
+    tf: bool = False
+
+
 class MetaResponse(BaseModel):
     course: CourseInfo
     quizzes: list[QuizMeta]
@@ -268,6 +239,8 @@ class MetaResponse(BaseModel):
     trends: dict[str, int]
     thresholds_defaults: ThresholdDefaults
     story_categories: list[str]
+    scenarios: list[ScenarioMeta]
+    default_scenario: int
 
 
 class StoriesPreviewResponse(BaseModel):

@@ -8,8 +8,9 @@ import pandas as pd
 from app.cache import get_sequences, sequences_cache_key, set_sequences
 from app.config import EVENT_CLASS_ORDER, FLOW_SEQUENCE, RARE_CLASSES_DEFAULT_HIDDEN, settings
 from app.data_loader import store
-from app.event_pipeline import declutter_events, partitioning
-from app.fast_pipeline import get_classified_activity, prepare_sequences_fast
+from app.event_pipeline import declutter_events
+from app.sequence import list_scenarios, prepare_sequences
+from app.schemas import DEFAULT_SCENARIO
 from app.stories import STORY_CATALOG, adherence_score, evaluate_stories
 
 logger = logging.getLogger(__name__)
@@ -32,12 +33,12 @@ def _user_matches_segment(uid: int, segment: str, metrics: dict) -> bool:
 
 def warmup_cache() -> None:
     """Pré-computa timelines das 4 atividades com opções padrão do dashboard."""
-    from app.schemas import SimplificationOptions, TimelineRequest
+    from app.schemas import TimelineRequest
 
     for aid in (12841, 12842, 12843, 12844):
         req = TimelineRequest(
             assignment_id=aid,
-            simplification=SimplificationOptions(coalescing_hidden=True),
+            scenario=DEFAULT_SCENARIO,
             declutter_mode="first_class",
         )
         try:
@@ -65,29 +66,27 @@ def build_timeline(req) -> dict:
             t_end = quiz["t_close"]
 
     params = {
-        "data": store.logs,
-        "mapping": store.mapping,
         "initial_date": t_start,
         "final_date": t_end,
         "assignment_id": req.assignment_id,
-        "multilevel": req.simplification.multilevel,
-        "coalescing_repeating": req.simplification.coalescing_repeating,
-        "coalescing_hidden": req.simplification.coalescing_hidden,
-        "spell": req.simplification.spell,
-        "tf": req.simplification.temporal_folding,
+        "scenario": req.scenario,
     }
-    if req.simplification.spell:
-        params["coalescing_repeating"] = False
 
     grade_df = store.quiz_grades if req.assignment_id else None
-    _, _, grades = partitioning(params, grade_df)
 
     cache_key = sequences_cache_key(params)
     sequences = get_sequences(cache_key)
     if sequences is None:
         logger.info("Gerando sequências (cache miss) key=%s", cache_key)
-        activity = get_classified_activity(params)
-        sequences = prepare_sequences_fast(activity, params, grades)
+        sequences = prepare_sequences(
+            store.logs,
+            store.mapping,
+            req.scenario,
+            assignment_id=req.assignment_id,
+            initial_date=t_start,
+            final_date=t_end,
+            grades_df=grade_df,
+        )
         set_sequences(cache_key, sequences)
     else:
         logger.info("Sequências do cache key=%s n=%s", cache_key, len(sequences))
@@ -249,4 +248,6 @@ def get_meta() -> dict:
             "resource_prep_days": settings.resource_prep_days,
         },
         "story_categories": list({s.category for s in STORY_CATALOG}),
+        "scenarios": list_scenarios(),
+        "default_scenario": DEFAULT_SCENARIO,
     }

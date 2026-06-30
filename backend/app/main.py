@@ -8,9 +8,9 @@ from fastapi.openapi.utils import get_openapi
 
 from app.data_loader import store
 from app.schemas import (
+    DEFAULT_SCENARIO,
     HealthResponse,
     MetaResponse,
-    SimplificationOptions,
     StoriesPreviewResponse,
     TimelineRequest,
     TimelineResponse,
@@ -25,7 +25,7 @@ API de **análise de trajetórias de aprendizagem** (curso SEE 2060).
 ## Funcionalidades
 
 - **Timeline** em coordenadas paralelas: eixo X = ordem na sequência, eixo Y = classe de evento.
-- **Simplificações** de sequência: multilevel, coalescing, spell, temporal folding.
+- **Simplificação** de sequência via [spm-preprocessing](../spm-preprocessing): 24 cenários pré-definidos.
 - **Filtros**: atividade, aluno, cidade, segmento de desempenho, tipos de evento.
 - **Narrativas automáticas** (stories): regras R4–R44 com contagem de alunos impactados.
 
@@ -166,7 +166,7 @@ def stories_preview(
 ) -> StoriesPreviewResponse:
     req = TimelineRequest(
         assignment_id=assignment_id,
-        simplification=SimplificationOptions(coalescing_hidden=True),
+        scenario=DEFAULT_SCENARIO,
         declutter_mode="first_class",
     )
     data = build_timeline(req)

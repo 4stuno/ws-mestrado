@@ -1,11 +1,3 @@
-export interface SimplificationOptions {
-  multilevel: boolean;
-  coalescing_repeating: boolean;
-  coalescing_hidden: boolean;
-  spell: boolean;
-  temporal_folding: boolean;
-}
-
 export interface TimelineRequest {
   assignment_id?: number | null;
   t_start?: number | null;
@@ -14,7 +6,7 @@ export interface TimelineRequest {
   cities?: string[] | null;
   event_classes?: string[] | null;
   segment?: string | null;
-  simplification: SimplificationOptions;
+  scenario: number;
   thresholds: {
     low_grade: number;
     high_grade: number;
@@ -76,6 +68,17 @@ export interface StudentOption {
   city: string;
 }
 
+export interface ScenarioOption {
+  id: number;
+  path: string;
+  label: string;
+  multilevel: boolean;
+  spell: boolean;
+  coalescing_repeating: boolean;
+  coalescing_hidden: boolean;
+  tf: boolean;
+}
+
 export interface MetaResponse {
   course: { id: number; name: string; start: number; end: number };
   quizzes: { id: number; name: string; t_open: number; t_close: number; section: string }[];
@@ -89,4 +92,6 @@ export interface MetaResponse {
   segments: Record<string, number>;
   trends: Record<string, number>;
   thresholds_defaults: Record<string, number>;
+  scenarios: ScenarioOption[];
+  default_scenario: number;
 }
