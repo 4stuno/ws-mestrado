@@ -22,6 +22,70 @@ class ThresholdOptions(BaseModel):
     resource_prep_days: int = Field(7, ge=1, description="Janela em dias para exigir resource_vis antes da submissão.")
 
 
+class StoryParams(BaseModel):
+    """Parâmetros das 11 narrativas por passos (data storytelling).
+
+    A ideia central é que poucos parâmetros "hub" (fluxo_ideal, evento_marco)
+    influenciam várias estórias ao mesmo tempo.
+    """
+
+    fluxo_ideal: list[str] = Field(
+        default_factory=lambda: [
+            "course_vis",
+            "resource_vis",
+            "assignment_vis",
+            "assignment_try",
+            "assignment_sub",
+        ],
+        description="Sequência de passos considerada 'correta' pelo docente. Estórias 1, 2, 9.",
+    )
+    evento_marco: str = Field(
+        "assignment_sub",
+        description="Evento âncora de 'entrega'. Estórias 1, 2, 3, 4, 6, 7, 8, 9, 10.",
+    )
+    evento_preparacao: str = Field(
+        "resource_vis", description="Evento que conta como 'estudar material'. Estórias 1, 4, 9."
+    )
+    evento_entrada: str = Field(
+        "assignment_vis", description="Evento de 'chegou à atividade'. Estórias 5, 10, 11."
+    )
+    evento_inicio: str = Field(
+        "assignment_try", description="Evento de 'começou a tentativa'. Estórias 3, 5, 6, 10."
+    )
+    evento_forum: str = Field(
+        "forum_participation",
+        description="O que conta como fórum: forum_participation ou forum_vis. Estórias 7, 8.",
+    )
+    eventos_navegacao: list[str] = Field(
+        default_factory=lambda: ["course_vis", "resource_vis", "forum_vis"],
+        description="Eventos de navegação superficial. Estória 11.",
+    )
+    modo_analise: Literal["passos", "tempo"] = Field(
+        "passos", description="Passos (ordem na sequência) ou tempo (timestamp). Estórias 1, 4, 8."
+    )
+    modo_aderencia: Literal["presenca", "ordem_estrita", "ordem_parcial"] = Field(
+        "presenca", description="Como medir aderência ao fluxo. Estória 2."
+    )
+    limiar_aderencia: float = Field(
+        0.6, ge=0, le=1, description="% mínima do fluxo cumprida para NÃO ser marcado. Estória 2."
+    )
+    modo_rapidez: Literal["passos_adjacentes", "mesma_sessao"] = Field(
+        "passos_adjacentes", description="O que é 'rápido'. Estória 6."
+    )
+    max_materiais: int = Field(
+        1, ge=0, description="Máximo de materiais antes da entrega para contar como 'pouco'. Estória 9."
+    )
+    min_eventos_navegacao: int = Field(
+        2, ge=1, description="Mínimo de passos de navegação para contar como 'navegou'. Estória 11."
+    )
+    session_gap: int = Field(
+        3600, ge=1, description="Intervalo (s) que separa sessões. Estória 6 (mesma_sessao)."
+    )
+    min_impact_pct: float = Field(
+        0.02, ge=0, le=1, description="% mínima de alunos afetados para a estória aparecer. Todas."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Requisição / resposta da timeline
 # ---------------------------------------------------------------------------
@@ -60,6 +124,10 @@ class TimelineRequest(BaseModel):
         examples=[7],
     )
     thresholds: ThresholdOptions = Field(default_factory=ThresholdOptions)
+    story_params: StoryParams = Field(
+        default_factory=StoryParams,
+        description="Parâmetros das narrativas por passos (data storytelling).",
+    )
     declutter_mode: Literal["none", "first_class", "limit_users"] = Field(
         "none",
         description="Redução de densidade visual: completo, 1ª ocorrência por classe ou limite de usuários.",
@@ -85,6 +153,29 @@ class TimelineRequest(BaseModel):
                     "late_try_hours": 24,
                     "inactivity_days": 5,
                     "resource_prep_days": 7,
+                },
+                "story_params": {
+                    "fluxo_ideal": [
+                        "course_vis",
+                        "resource_vis",
+                        "assignment_vis",
+                        "assignment_try",
+                        "assignment_sub",
+                    ],
+                    "evento_marco": "assignment_sub",
+                    "evento_preparacao": "resource_vis",
+                    "evento_entrada": "assignment_vis",
+                    "evento_inicio": "assignment_try",
+                    "evento_forum": "forum_participation",
+                    "eventos_navegacao": ["course_vis", "resource_vis", "forum_vis"],
+                    "modo_analise": "passos",
+                    "modo_aderencia": "presenca",
+                    "limiar_aderencia": 0.6,
+                    "modo_rapidez": "passos_adjacentes",
+                    "max_materiais": 1,
+                    "min_eventos_navegacao": 2,
+                    "session_gap": 3600,
+                    "min_impact_pct": 0.02,
                 },
                 "declutter_mode": "first_class",
                 "max_users": 300,
@@ -143,6 +234,7 @@ class StoryItem(BaseModel):
     affected_count: int
     affected_pct: float
     affected_users: list[int] = Field(default_factory=list)
+    params: list[str] = Field(default_factory=list, description="Parâmetros que influenciam esta estória.")
 
 
 class TimelineResponse(BaseModel):

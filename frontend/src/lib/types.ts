@@ -1,3 +1,21 @@
+export interface StoryParams {
+  fluxo_ideal: string[];
+  evento_marco: string;
+  evento_preparacao: string;
+  evento_entrada: string;
+  evento_inicio: string;
+  evento_forum: string;
+  eventos_navegacao: string[];
+  modo_analise: "passos" | "tempo";
+  modo_aderencia: "presenca" | "ordem_estrita" | "ordem_parcial";
+  limiar_aderencia: number;
+  modo_rapidez: "passos_adjacentes" | "mesma_sessao";
+  max_materiais: number;
+  min_eventos_navegacao: number;
+  session_gap: number;
+  min_impact_pct: number;
+}
+
 export interface TimelineRequest {
   assignment_id?: number | null;
   t_start?: number | null;
@@ -16,6 +34,7 @@ export interface TimelineRequest {
     inactivity_days: number;
     resource_prep_days: number;
   };
+  story_params: StoryParams;
   declutter_mode: string;
   max_users: number;
   hide_rare_classes: boolean;
@@ -48,6 +67,7 @@ export interface Story {
   highlight: string;
   affected_count: number;
   affected_pct: number;
+  params?: string[];
 }
 
 export interface TimelineResponse {

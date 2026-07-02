@@ -1,7 +1,14 @@
 "use client";
 
-import { Badge, Card, Group, ScrollArea, Stack, Text, ThemeIcon, Title } from "@mantine/core";
-import { IconBulb, IconClock, IconRoute, IconUserExclamation } from "@tabler/icons-react";
+import { Badge, Card, Group, ScrollArea, Stack, Text, ThemeIcon, Title, Tooltip } from "@mantine/core";
+import {
+  IconBulb,
+  IconClock,
+  IconMessages,
+  IconRoute,
+  IconRun,
+  IconUserExclamation,
+} from "@tabler/icons-react";
 import type { Story } from "@/lib/types";
 import { highlightColor } from "@/lib/format";
 import { HIGHLIGHT_LABELS } from "@/lib/events";
@@ -10,6 +17,8 @@ const CATEGORY_META: Record<string, { label: string; icon: typeof IconClock }> =
   deadline: { label: "Prazo e urgência", icon: IconClock },
   prep: { label: "Preparação e percurso", icon: IconRoute },
   bottleneck: { label: "Gargalos de conversão", icon: IconUserExclamation },
+  social: { label: "Fórum e engajamento social", icon: IconMessages },
+  rhythm: { label: "Ritmo de estudo", icon: IconRun },
   profile: { label: "Perfis comportamentais", icon: IconBulb },
 };
 
@@ -83,6 +92,17 @@ export function StoriesPanel({ stories }: Props) {
                   <Text size="xs" mt={8} fw={600} c="indigo.7">
                     {s.affected_count} alunos impactados ({s.affected_pct}% da turma visível)
                   </Text>
+                  {s.params && s.params.length > 0 && (
+                    <Group gap={4} mt={8}>
+                      {s.params.map((p) => (
+                        <Tooltip key={p} label={`Parâmetro que influencia esta estória`} withArrow>
+                          <Badge size="xs" variant="dot" color="indigo">
+                            {p}
+                          </Badge>
+                        </Tooltip>
+                      ))}
+                    </Group>
+                  )}
                 </Card>
               ))}
             </Stack>

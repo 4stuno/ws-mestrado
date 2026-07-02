@@ -120,6 +120,7 @@ def build_timeline(req) -> dict:
 
     hidden = set(RARE_CLASSES_DEFAULT_HIDDEN) if req.hide_rare_classes else set()
     allowed_classes = set(req.event_classes) if req.event_classes else None
+    flow = req.story_params.fluxo_ideal or FLOW_SEQUENCE
 
     total_points = 0
     users_out: list[dict] = []
@@ -158,7 +159,7 @@ def build_timeline(req) -> dict:
             "delta": m.get("delta"),
             "segment": m.get("segment", "medium"),
             "trend": m.get("trend", "stable"),
-            "adherence": round(adherence_score(flat), 2),
+            "adherence": round(adherence_score(flat, flow), 2),
             "highlight": highlight,
         })
 
@@ -189,6 +190,7 @@ def build_timeline(req) -> dict:
             quiz,
             metrics,
             req.thresholds.model_dump(),
+            req.story_params.model_dump(),
         )
 
     return {
