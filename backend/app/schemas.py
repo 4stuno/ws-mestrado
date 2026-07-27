@@ -112,6 +112,10 @@ class TimelineRequest(BaseModel):
         description="Tipos de evento mapeados (event_mapping.csv).",
         examples=[["assignment_vis", "assignment_try", "assignment_sub"]],
     )
+    stories_respect_event_filter: bool = Field(
+        False,
+        description="Se true, as estórias consideram apenas os tipos em event_classes.",
+    )
     segment: Literal["risk", "high", "medium", "improving", "dropping"] | None = Field(
         None,
         description="Segmento de desempenho ou tendência.",
@@ -237,6 +241,20 @@ class StoryItem(BaseModel):
     params: list[str] = Field(default_factory=list, description="Parâmetros que influenciam esta estória.")
 
 
+class StoryRuleStatus(BaseModel):
+    id: str
+    status: Literal["active", "adapted", "removed"]
+    reason: str | None = None
+    missing_events: list[str] = Field(default_factory=list)
+    adapted_fields: list[str] = Field(default_factory=list)
+
+
+class StoryFilterInfo(BaseModel):
+    enabled: bool = False
+    selected_event_classes: list[str] = Field(default_factory=list)
+    rules: list[StoryRuleStatus] = Field(default_factory=list)
+
+
 class TimelineResponse(BaseModel):
     users: list[TimelineUser]
     event_classes: list[str]
@@ -248,6 +266,7 @@ class TimelineResponse(BaseModel):
     flow_sequence: list[str]
     stories: list[StoryItem]
     active_rules: list[str]
+    story_filter_info: StoryFilterInfo = Field(default_factory=StoryFilterInfo)
 
 
 # ---------------------------------------------------------------------------

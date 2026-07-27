@@ -181,6 +181,108 @@ def _flow_adherence(prefix_classes: list[str], flow: list[str], mode: str) -> fl
     return matched / len(flow)
 
 
+def _rules_scope(
+    p: dict[str, Any], allowed_classes: set[str] | None
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    """Define como cada regra deve ser avaliada após filtro opcional de classes."""
+    rules_cfg: dict[str, dict[str, Any]] = {}
+    status_rows: list[dict[str, Any]] = []
+
+    def build_status(
+        rule_id: str,
+        status: str,
+        reason: str | None = None,
+        missing_events: list[str] | None = None,
+        adapted_fields: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return {
+            "id": rule_id,
+            "status": status,
+            "reason": reason,
+            "missing_events": missing_events or [],
+            "adapted_fields": adapted_fields or [],
+        }
+
+    for rule in STORY_CATALOG:
+        cfg = {"enabled": True, "missing_events": [], "adapted_fields": []}
+        rid = rule.id
+        if not allowed_classes:
+            rules_cfg[rid] = cfg
+            status_rows.append(build_status(rid, "active"))
+            continue
+
+        required: list[str] = []
+        if rid == "S1":
+            required = [p["evento_marco"], p["evento_preparacao"]]
+        elif rid == "S2":
+            flow = [e for e in p["fluxo_ideal"] if e in allowed_classes]
+            removed = [e for e in p["fluxo_ideal"] if e not in allowed_classes]
+            if removed:
+                cfg["adapted_fields"].append("fluxo_ideal")
+            if not flow:
+                cfg["enabled"] = False
+                cfg["missing_events"] = removed
+            cfg["flow"] = flow
+        elif rid == "S3":
+            required = [p["evento_inicio"], p["evento_marco"]]
+        elif rid == "S4":
+            required = [p["evento_marco"], p["evento_preparacao"]]
+        elif rid == "S5":
+            required = [p["evento_entrada"], p["evento_inicio"]]
+        elif rid == "S6":
+            required = [p["evento_inicio"], p["evento_marco"]]
+        elif rid == "S7":
+            required = [p["evento_marco"], p["evento_forum"]]
+        elif rid == "S8":
+            required = [p["evento_forum"], p["evento_marco"]]
+        elif rid == "S9":
+            required = [p["evento_preparacao"], p["evento_marco"]]
+        elif rid == "S10":
+            required = [p["evento_entrada"], p["evento_inicio"], p["evento_marco"]]
+        elif rid == "S11":
+            nav = [e for e in p["eventos_navegacao"] if e in allowed_classes]
+            removed = [e for e in p["eventos_navegacao"] if e not in allowed_classes]
+            if removed:
+                cfg["adapted_fields"].append("eventos_navegacao")
+            cfg["nav_events"] = set(nav)
+            if not nav:
+                cfg["enabled"] = False
+                cfg["missing_events"] = removed
+            required = [p["evento_entrada"]]
+
+        if required:
+            missing = sorted({ev for ev in required if ev not in allowed_classes})
+            if missing:
+                cfg["enabled"] = False
+                cfg["missing_events"] = sorted(set(cfg["missing_events"] + missing))
+
+        rules_cfg[rid] = cfg
+        if not cfg["enabled"]:
+            status_rows.append(
+                build_status(
+                    rid,
+                    "removed",
+                    "Eventos obrigatorios da regra nao estao no filtro selecionado.",
+                    cfg["missing_events"],
+                    cfg["adapted_fields"],
+                )
+            )
+        elif cfg["adapted_fields"]:
+            status_rows.append(
+                build_status(
+                    rid,
+                    "adapted",
+                    "Regra adaptada para considerar apenas eventos selecionados.",
+                    [],
+                    cfg["adapted_fields"],
+                )
+            )
+        else:
+            status_rows.append(build_status(rid, "active"))
+
+    return rules_cfg, status_rows
+
+
 def evaluate_stories(
     user_sequences: list[dict],
     activity_df: pd.DataFrame,
@@ -188,6 +290,7 @@ def evaluate_stories(
     user_metrics: dict[int, dict],
     thresholds: dict | None = None,
     story_params: dict | None = None,
+    allowed_classes: set[str] | None = None,
 ) -> dict[str, Any]:
     th = thresholds or {}
     p = {**DEFAULT_STORY_PARAMS, **(story_params or {})}
@@ -207,6 +310,7 @@ def evaluate_stories(
 
     total = max(len(user_sequences), 1)
     affected: dict[str, set[int]] = {r.id: set() for r in STORY_CATALOG}
+    rules_cfg, rule_status = _rules_scope(p, allowed_classes)
     # notas p/ narrativa de desempenho (S7)
     grades_forum: list[float] = []
     grades_no_forum: list[float] = []
@@ -233,7 +337,7 @@ def evaluate_stories(
         gr = user_metrics.get(uid, {}).get("mean_ratio")
 
         # -- S1: submissão sem preparação prévia -----------------------------
-        if first_marco_i >= 0:
+        if rules_cfg["S1"]["enabled"] and first_marco_i >= 0:
             if mode == "tempo":
                 prep_before = any(
                     _base_class(e["event"]) == prep and marco_t - prep_window <= e["time"] < marco_t
@@ -245,16 +349,17 @@ def evaluate_stories(
                 affected["S1"].add(uid)
 
         # -- S2: fluxo ideal incompleto --------------------------------------
+        s2_flow = rules_cfg["S2"].get("flow", fluxo)
         prefix = classes[: first_marco_i + 1] if first_marco_i >= 0 else classes
-        if _flow_adherence(prefix, fluxo, p["modo_aderencia"]) < p["limiar_aderencia"]:
+        if rules_cfg["S2"]["enabled"] and _flow_adherence(prefix, s2_flow, p["modo_aderencia"]) < p["limiar_aderencia"]:
             affected["S2"].add(uid)
 
         # -- S3: tentou mas não submeteu -------------------------------------
-        if inicio in class_set and marco not in class_set:
+        if rules_cfg["S3"]["enabled"] and inicio in class_set and marco not in class_set:
             affected["S3"].add(uid)
 
         # -- S4: revisita aos materiais após submissão -----------------------
-        if first_marco_i >= 0:
+        if rules_cfg["S4"]["enabled"] and first_marco_i >= 0:
             if mode == "tempo":
                 revisit = any(
                     _base_class(e["event"]) == prep and e["time"] > marco_t for e in flat
@@ -265,11 +370,11 @@ def evaluate_stories(
                 affected["S4"].add(uid)
 
         # -- S5: visualizou mas nunca tentou ---------------------------------
-        if entrada in class_set and inicio not in class_set:
+        if rules_cfg["S5"]["enabled"] and entrada in class_set and inicio not in class_set:
             affected["S5"].add(uid)
 
         # -- S6: submissão rápida após tentativa -----------------------------
-        if inicio in class_set and marco in class_set:
+        if rules_cfg["S6"]["enabled"] and inicio in class_set and marco in class_set:
             if p["modo_rapidez"] == "mesma_sessao":
                 inicio_t = flat[classes.index(inicio)]["time"]
                 marco_after = [e["time"] for e in flat if _base_class(e["event"]) == marco and e["time"] >= inicio_t]
@@ -282,7 +387,7 @@ def evaluate_stories(
                         affected["S6"].add(uid)
 
         # -- S7: submissão sem participação em fórum -------------------------
-        if marco in class_set:
+        if rules_cfg["S7"]["enabled"] and marco in class_set:
             if forum not in class_set:
                 affected["S7"].add(uid)
                 if gr is not None:
@@ -291,7 +396,7 @@ def evaluate_stories(
                 grades_forum.append(gr)
 
         # -- S8: fórum sem entrega posterior ---------------------------------
-        if forum in class_set:
+        if rules_cfg["S8"]["enabled"] and forum in class_set:
             first_forum_i = classes.index(forum)
             if mode == "tempo":
                 forum_t = flat[first_forum_i]["time"]
@@ -304,18 +409,19 @@ def evaluate_stories(
                 affected["S8"].add(uid)
 
         # -- S9: pouco consumo de material antes da entrega ------------------
-        if first_marco_i >= 0:
+        if rules_cfg["S9"]["enabled"] and first_marco_i >= 0:
             n_prep = classes[:first_marco_i].count(prep)
             if n_prep <= p["max_materiais"]:
                 affected["S9"].add(uid)
 
         # -- S10: visualizou mas abandonou -----------------------------------
-        if entrada in class_set and inicio not in class_set and marco not in class_set:
+        if rules_cfg["S10"]["enabled"] and entrada in class_set and inicio not in class_set and marco not in class_set:
             affected["S10"].add(uid)
 
         # -- S11: navegação superficial --------------------------------------
-        n_nav = sum(1 for c in classes if c in nav_events)
-        if n_nav >= p["min_eventos_navegacao"] and entrada not in class_set:
+        s11_nav_events = rules_cfg["S11"].get("nav_events", nav_events)
+        n_nav = sum(1 for c in classes if c in s11_nav_events)
+        if rules_cfg["S11"]["enabled"] and n_nav >= p["min_eventos_navegacao"] and entrada not in class_set:
             affected["S11"].add(uid)
 
     # narrativa de desempenho para S7
@@ -327,6 +433,8 @@ def evaluate_stories(
 
     stories_out: list[dict] = []
     for rule in STORY_CATALOG:
+        if not rules_cfg[rule.id]["enabled"]:
+            continue
         ids = affected[rule.id]
         n = len(ids)
         pct = n / total
@@ -350,4 +458,5 @@ def evaluate_stories(
     return {
         "stories": stories_out,
         "active_rule_ids": [s["id"] for s in stories_out],
+        "rule_status": rule_status,
     }

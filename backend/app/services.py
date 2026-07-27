@@ -184,6 +184,7 @@ def build_timeline(req) -> dict:
 
     story_pack = {}
     if quiz:
+        stories_allowed_classes = allowed_classes if req.stories_respect_event_filter else None
         story_pack = evaluate_stories(
             sequences,
             activity,
@@ -191,6 +192,7 @@ def build_timeline(req) -> dict:
             metrics,
             req.thresholds.model_dump(),
             req.story_params.model_dump(),
+            stories_allowed_classes,
         )
 
     return {
@@ -212,6 +214,11 @@ def build_timeline(req) -> dict:
         "flow_sequence": FLOW_SEQUENCE,
         "stories": story_pack.get("stories", []),
         "active_rules": story_pack.get("active_rule_ids", []),
+        "story_filter_info": {
+            "enabled": bool(req.stories_respect_event_filter),
+            "selected_event_classes": sorted(allowed_classes) if allowed_classes else [],
+            "rules": story_pack.get("rule_status", []),
+        },
     }
 
 

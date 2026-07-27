@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Card, Group, ScrollArea, Stack, Text, ThemeIcon, Title, Tooltip } from "@mantine/core";
+import { Alert, Badge, Card, Group, ScrollArea, Stack, Text, ThemeIcon, Title, Tooltip } from "@mantine/core";
 import {
   IconBulb,
   IconClock,
@@ -24,13 +24,26 @@ const CATEGORY_META: Record<string, { label: string; icon: typeof IconClock }> =
 
 interface Props {
   stories: Story[];
+  storyFilterInfo?: {
+    enabled: boolean;
+    selected_event_classes: string[];
+    rules: {
+      id: string;
+      status: "active" | "adapted" | "removed";
+      reason?: string | null;
+      missing_events: string[];
+      adapted_fields: string[];
+    }[];
+  };
 }
 
-export function StoriesPanel({ stories }: Props) {
+export function StoriesPanel({ stories, storyFilterInfo }: Props) {
   const grouped = stories.reduce<Record<string, Story[]>>((acc, s) => {
     (acc[s.category] ??= []).push(s);
     return acc;
   }, {});
+  const removedRules = storyFilterInfo?.rules.filter((r) => r.status === "removed") ?? [];
+  const adaptedRules = storyFilterInfo?.rules.filter((r) => r.status === "adapted") ?? [];
 
   return (
     <Stack gap="sm">
@@ -43,6 +56,18 @@ export function StoriesPanel({ stories }: Props) {
       <Text size="sm" c="dimmed">
         Insights gerados a partir dos padrões detectados na turma filtrada.
       </Text>
+      {storyFilterInfo?.enabled && (removedRules.length > 0 || adaptedRules.length > 0) && (
+        <Alert color="yellow" variant="light" radius="md" title="Regras ajustadas pelo filtro de eventos">
+          <Text size="xs">
+            Removidas: {removedRules.length} · Adaptadas: {adaptedRules.length}
+          </Text>
+          {removedRules.slice(0, 4).map((r) => (
+            <Text key={r.id} size="xs" mt={4}>
+              {r.id}: {r.reason ?? "Regra removida"} {r.missing_events.length ? `(${r.missing_events.join(", ")})` : ""}
+            </Text>
+          ))}
+        </Alert>
+      )}
       <ScrollArea h={400} offsetScrollbars type="auto">
         {stories.length === 0 && (
           <Text size="sm" c="dimmed" ta="center" py="lg">

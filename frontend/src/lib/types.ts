@@ -23,6 +23,7 @@ export interface TimelineRequest {
   user_ids?: number[] | null;
   cities?: string[] | null;
   event_classes?: string[] | null;
+  stories_respect_event_filter?: boolean;
   segment?: string | null;
   scenario: number;
   thresholds: {
@@ -79,6 +80,18 @@ export interface TimelineResponse {
   course_end: number;
   quiz?: { id: number; name: string; t_open: number; t_close: number };
   stories: Story[];
+  active_rules?: string[];
+  story_filter_info?: {
+    enabled: boolean;
+    selected_event_classes: string[];
+    rules: {
+      id: string;
+      status: "active" | "adapted" | "removed";
+      reason?: string | null;
+      missing_events: string[];
+      adapted_fields: string[];
+    }[];
+  };
   flow_sequence: string[];
 }
 

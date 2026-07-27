@@ -272,6 +272,14 @@ export function FilterPanel({ meta, filters, onChange, filtersPending }: Props) 
                 Definem como as 11 estórias são detectadas na sequência de passos. Poucos
                 parâmetros influenciam várias estórias ao mesmo tempo.
               </Text>
+              <Switch
+                label="Estórias respeitam o filtro de tipos de evento"
+                description="Quando ativo, regras podem ser removidas/adaptadas se eventos obrigatórios não estiverem selecionados."
+                checked={!!filters.stories_respect_event_filter}
+                onChange={(e) =>
+                  onChange({ ...filters, stories_respect_event_filter: e.currentTarget.checked })
+                }
+              />
 
               <div>
                 <Text size="sm" fw={600} mb={4}>

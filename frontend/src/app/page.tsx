@@ -58,6 +58,7 @@ const defaultFilters: TimelineRequest = {
   declutter_mode: "first_class",
   max_users: 300,
   hide_rare_classes: true,
+  stories_respect_event_filter: false,
   compare_mode: "team",
 };
 
@@ -358,7 +359,10 @@ export default function DashboardPage() {
                       radius="lg"
                       style={{ background: "rgba(255,255,255,0.92)", border: "1px solid rgba(99,102,241,0.1)" }}
                     >
-                      <StoriesPanel stories={data.stories ?? []} />
+                      <StoriesPanel
+                        stories={data.stories ?? []}
+                        storyFilterInfo={data.story_filter_info}
+                      />
                     </Paper>
                   </Grid.Col>
                 </Grid>
