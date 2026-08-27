@@ -37,31 +37,31 @@ class StoryParams(BaseModel):
             "assignment_try",
             "assignment_sub",
         ],
-        description="Sequência de passos considerada 'correta' pelo docente. Estórias 1, 2, 9.",
+        description="Sequência de passos considerada 'correta' pelo docente. Estórias 1 e 2.",
     )
     evento_marco: str = Field(
         "assignment_sub",
-        description="Evento âncora de 'entrega'. Estórias 1, 2, 3, 4, 6, 7, 8, 9, 10.",
+        description="Evento âncora de 'entrega'. Estórias 1, 2, 3, 4, 7, 8, 10.",
     )
     evento_preparacao: str = Field(
-        "resource_vis", description="Evento que conta como 'estudar material'. Estórias 1, 4, 9."
+        "resource_vis", description="Evento que conta como 'estudar material'. Estórias 1 e 4."
     )
     evento_entrada: str = Field(
         "assignment_vis", description="Evento de 'chegou à atividade'. Estórias 5, 10, 11."
     )
     evento_inicio: str = Field(
-        "assignment_try", description="Evento de 'começou a tentativa'. Estórias 3, 5, 6, 10."
+        "assignment_try", description="Evento de 'começou a tentativa'. Estórias 3, 5, 10."
     )
     evento_forum: str = Field(
         "forum_participation",
-        description="O que conta como fórum: forum_participation ou forum_vis. Estórias 7, 8.",
+        description="O que conta como participação no fórum. Estória 7. A 8 usa forum_vis.",
     )
     eventos_navegacao: list[str] = Field(
         default_factory=lambda: ["course_vis", "resource_vis", "forum_vis"],
         description="Eventos de navegação superficial. Estória 11.",
     )
     modo_analise: Literal["passos", "tempo"] = Field(
-        "passos", description="Passos (ordem na sequência) ou tempo (timestamp). Estórias 1, 4, 8."
+        "passos", description="Passos (ordem na sequência) ou tempo (timestamp). Estórias 1, 4."
     )
     modo_aderencia: Literal["presenca", "ordem_estrita", "ordem_parcial"] = Field(
         "presenca", description="Como medir aderência ao fluxo. Estória 2."

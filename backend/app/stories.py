@@ -1,6 +1,6 @@
 """Motor de storytelling.
 
-Este módulo implementa as 11 narrativas priorizadas para a visualização por
+Este módulo implementa as narrativas priorizadas para a visualização por
 **passos** (ordem na sequência), todas parametrizáveis via ``StoryParams``.
 
 Cada estória é do tipo "tem/não tem o passo X" ou "o passo A veio antes/depois
@@ -20,6 +20,8 @@ import pandas as pd
 
 from app.config import FLOW_SEQUENCE, settings
 
+HIDDEN_STORY_CATEGORIES = frozenset({"bottleneck"})
+
 
 @dataclass
 class StoryRule:
@@ -36,71 +38,71 @@ class StoryRule:
 # ---------------------------------------------------------------------------
 STORY_CATALOG: list[StoryRule] = [
     StoryRule(
-        "S1", "prep", "Submissão sem preparação prévia",
-        "Mais de um terço das submissões ocorreu sem acesso prévio aos materiais?",
+        "S1", "prep", "Submissão realizada sem preparação prévia",
+        "{pct}% das submissões ocorreram sem acesso prévio aos materiais.",
         "risk",
         ["fluxo_ideal", "evento_preparacao", "evento_marco", "modo_analise", "min_impact_pct"],
     ),
     StoryRule(
-        "S2", "prep", "Fluxo ideal incompleto",
-        "Parte dos alunos não percorre todas as etapas esperadas antes da submissão?",
+        "S2", "prep", "Trajetória ideal incompleta",
+        "{pct}% dos alunos não percorreram todas as etapas esperadas antes da submissão.",
         "attention",
         ["fluxo_ideal", "modo_aderencia", "limiar_aderencia", "evento_marco", "min_impact_pct"],
     ),
+    # StoryRule(
+    #     "S3", "bottleneck", "Tentou mas não submeteu",
+    #     "Alguns alunos iniciam atividades mas não chegam à submissão final?",
+    #     "attention",
+    #     ["evento_inicio", "evento_marco", "min_impact_pct"],
+    # ),
+    # StoryRule(
+    #     "S4", "prep", "Revisita aos materiais após submissão",
+    #     "Grande parte da turma revisitou os materiais depois da submissão?",
+    #     "good",
+    #     ["evento_marco", "evento_preparacao", "modo_analise", "min_impact_pct"],
+    # ),
+    # StoryRule(
+    #     "S5", "bottleneck", "Visualizou mas nunca tentou",
+    #     "Alguns alunos chegam até a atividade, mas não iniciam a tentativa?",
+    #     "attention",
+    #     ["evento_entrada", "evento_inicio", "min_impact_pct"],
+    # ),
+    # StoryRule(
+    #     "S6", "rhythm", "Submissão rápida após tentativa",
+    #     "A maioria das submissões acontece logo após a primeira tentativa?",
+    #     "good",
+    #     ["evento_inicio", "evento_marco", "modo_rapidez", "min_impact_pct"],
+    # ),
     StoryRule(
-        "S3", "bottleneck", "Tentou mas não submeteu",
-        "Alguns alunos iniciam atividades mas não chegam à submissão final?",
+        "S7", "social", "Submissão sem participação nos fóruns",
+        "{pct}% dos alunos não participaram do fórum antes da submissão.",
         "attention",
-        ["evento_inicio", "evento_marco", "min_impact_pct"],
+        ["evento_marco", "evento_forum", "min_impact_pct"],
     ),
     StoryRule(
-        "S4", "prep", "Revisita aos materiais após submissão",
-        "Grande parte da turma revisitou os materiais depois da submissão?",
-        "good",
-        ["evento_marco", "evento_preparacao", "modo_analise", "min_impact_pct"],
-    ),
-    StoryRule(
-        "S5", "bottleneck", "Visualizou mas nunca tentou",
-        "Alguns alunos chegam até a atividade, mas não iniciam a tentativa?",
+        "S8", "social", "Submissão sem acesso aos fóruns",
+        "{pct}% dos alunos não acessaram o fórum antes da submissão.",
         "attention",
-        ["evento_entrada", "evento_inicio", "min_impact_pct"],
+        ["evento_marco", "min_impact_pct"],
     ),
-    StoryRule(
-        "S6", "rhythm", "Submissão rápida após tentativa",
-        "A maioria das submissões acontece logo após a primeira tentativa?",
-        "good",
-        ["evento_inicio", "evento_marco", "modo_rapidez", "min_impact_pct"],
-    ),
-    StoryRule(
-        "S7", "social", "Submissão sem participação em fórum",
-        "Participação no fórum aparece associada a desempenho um pouco melhor?",
-        "attention",
-        ["evento_marco", "evento_forum", "low_grade", "min_impact_pct"],
-    ),
-    StoryRule(
-        "S8", "social", "Fórum sem entrega posterior",
-        "Discussão no fórum nem sempre virou entrega de atividade?",
-        "attention",
-        ["evento_forum", "evento_marco", "modo_analise", "min_impact_pct"],
-    ),
-    StoryRule(
-        "S9", "prep", "Pouco consumo de material antes da entrega",
-        "Há alunos que submetem atividades consumindo poucos materiais de apoio?",
-        "attention",
-        ["evento_preparacao", "evento_marco", "max_materiais", "fluxo_ideal", "min_impact_pct"],
-    ),
-    StoryRule(
-        "S10", "bottleneck", "Visualizou mas abandonou",
-        "Parte da turma abandona o fluxo após visualizar a atividade?",
-        "risk",
-        ["evento_entrada", "evento_inicio", "evento_marco", "min_impact_pct"],
-    ),
-    StoryRule(
-        "S11", "bottleneck", "Navegação superficial",
-        "Há alunos que navegam pelo curso sem chegar às atividades?",
-        "attention",
-        ["eventos_navegacao", "evento_entrada", "min_eventos_navegacao", "min_impact_pct"],
-    ),
+    # StoryRule(
+    #     "S9", "prep", "Pouco consumo de material antes da entrega",
+    #     "Há alunos que submetem atividades consumindo poucos materiais de apoio?",
+    #     "attention",
+    #     ["evento_preparacao", "evento_marco", "max_materiais", "fluxo_ideal", "min_impact_pct"],
+    # ),
+    # StoryRule(
+    #     "S10", "bottleneck", "Visualizou mas abandonou",
+    #     "Parte da turma abandona o fluxo após visualizar a atividade?",
+    #     "risk",
+    #     ["evento_entrada", "evento_inicio", "evento_marco", "min_impact_pct"],
+    # ),
+    # StoryRule(
+    #     "S11", "bottleneck", "Navegação superficial",
+    #     "Há alunos que navegam pelo curso sem chegar às atividades?",
+    #     "attention",
+    #     ["eventos_navegacao", "evento_entrada", "min_eventos_navegacao", "min_impact_pct"],
+    # ),
 ]
 
 
@@ -149,6 +151,15 @@ def _base_class(ev: str) -> str:
     for suffix in ("_START", "_END", "_SOME", "_MANY"):
         ev = ev.replace(suffix, "")
     return ev
+
+
+def _fill_statement(template: str, *, pct: float, count: int) -> str:
+    """Preenche o texto da estória com a proporção calculada (vírgula decimal)."""
+    pct_txt = f"{pct:.1f}".replace(".", ",")
+    try:
+        return template.format(pct=pct_txt, n=count)
+    except (KeyError, IndexError, ValueError):
+        return template
 
 
 def adherence_score(events: list[dict], flow: list[str] | None = None) -> float:
@@ -206,6 +217,10 @@ def _rules_scope(
     for rule in STORY_CATALOG:
         cfg = {"enabled": True, "missing_events": [], "adapted_fields": []}
         rid = rule.id
+        if rule.category in HIDDEN_STORY_CATEGORIES:
+            cfg["enabled"] = False
+            rules_cfg[rid] = cfg
+            continue
         if not allowed_classes:
             rules_cfg[rid] = cfg
             status_rows.append(build_status(rid, "active"))
@@ -223,32 +238,32 @@ def _rules_scope(
                 cfg["enabled"] = False
                 cfg["missing_events"] = removed
             cfg["flow"] = flow
-        elif rid == "S3":
-            required = [p["evento_inicio"], p["evento_marco"]]
-        elif rid == "S4":
-            required = [p["evento_marco"], p["evento_preparacao"]]
-        elif rid == "S5":
-            required = [p["evento_entrada"], p["evento_inicio"]]
-        elif rid == "S6":
-            required = [p["evento_inicio"], p["evento_marco"]]
+        # elif rid == "S3":
+        #     required = [p["evento_inicio"], p["evento_marco"]]
+        # elif rid == "S4":
+        #     required = [p["evento_marco"], p["evento_preparacao"]]
+        # elif rid == "S5":
+        #     required = [p["evento_entrada"], p["evento_inicio"]]
+        # elif rid == "S6":
+        #     required = [p["evento_inicio"], p["evento_marco"]]
         elif rid == "S7":
             required = [p["evento_marco"], p["evento_forum"]]
         elif rid == "S8":
-            required = [p["evento_forum"], p["evento_marco"]]
-        elif rid == "S9":
-            required = [p["evento_preparacao"], p["evento_marco"]]
-        elif rid == "S10":
-            required = [p["evento_entrada"], p["evento_inicio"], p["evento_marco"]]
-        elif rid == "S11":
-            nav = [e for e in p["eventos_navegacao"] if e in allowed_classes]
-            removed = [e for e in p["eventos_navegacao"] if e not in allowed_classes]
-            if removed:
-                cfg["adapted_fields"].append("eventos_navegacao")
-            cfg["nav_events"] = set(nav)
-            if not nav:
-                cfg["enabled"] = False
-                cfg["missing_events"] = removed
-            required = [p["evento_entrada"]]
+            required = [p["evento_marco"], "forum_vis"]
+        # elif rid == "S9":
+        #     required = [p["evento_preparacao"], p["evento_marco"]]
+        # elif rid == "S10":
+        #     required = [p["evento_entrada"], p["evento_inicio"], p["evento_marco"]]
+        # elif rid == "S11":
+        #     nav = [e for e in p["eventos_navegacao"] if e in allowed_classes]
+        #     removed = [e for e in p["eventos_navegacao"] if e not in allowed_classes]
+        #     if removed:
+        #         cfg["adapted_fields"].append("eventos_navegacao")
+        #     cfg["nav_events"] = set(nav)
+        #     if not nav:
+        #         cfg["enabled"] = False
+        #         cfg["missing_events"] = removed
+        #     required = [p["evento_entrada"]]
 
         if required:
             missing = sorted({ev for ev in required if ev not in allowed_classes})
@@ -297,23 +312,20 @@ def evaluate_stories(
 
     marco = p["evento_marco"]
     prep = p["evento_preparacao"]
-    entrada = p["evento_entrada"]
-    inicio = p["evento_inicio"]
+    # entrada = p["evento_entrada"]  # só S5/S10/S11
+    # inicio = p["evento_inicio"]  # só S3/S5/S6/S10
     forum = p["evento_forum"]
-    nav_events = set(p["eventos_navegacao"])
+    forum_vis = "forum_vis"
+    # nav_events = set(p["eventos_navegacao"])  # só S11
     fluxo = p["fluxo_ideal"]
     mode = p["modo_analise"]
-    session_gap = int(p.get("session_gap", 3600))
+    # session_gap = int(p.get("session_gap", 3600))  # só S6
     prep_window = th.get("resource_prep_days", settings.resource_prep_days) * 86400
     min_impact = float(p.get("min_impact_pct", 0.02))
-    low = th.get("low_grade", settings.low_grade)
 
     total = max(len(user_sequences), 1)
     affected: dict[str, set[int]] = {r.id: set() for r in STORY_CATALOG}
     rules_cfg, rule_status = _rules_scope(p, allowed_classes)
-    # notas p/ narrativa de desempenho (S7)
-    grades_forum: list[float] = []
-    grades_no_forum: list[float] = []
 
     for us in user_sequences:
         uid = int(us["key"])
@@ -327,14 +339,13 @@ def evaluate_stories(
         if not classes:
             continue
 
-        deduped: list[str] = []
-        for c in classes:
-            if not deduped or deduped[-1] != c:
-                deduped.append(c)
+        # deduped: list[str] = []  # só S6 (passos adjacentes)
+        # for c in classes:
+        #     if not deduped or deduped[-1] != c:
+        #         deduped.append(c)
 
         first_marco_i = classes.index(marco) if marco in class_set else -1
         marco_t = flat[first_marco_i]["time"] if first_marco_i >= 0 else None
-        gr = user_metrics.get(uid, {}).get("mean_ratio")
 
         # -- S1: submissão sem preparação prévia -----------------------------
         if rules_cfg["S1"]["enabled"] and first_marco_i >= 0:
@@ -355,84 +366,67 @@ def evaluate_stories(
             affected["S2"].add(uid)
 
         # -- S3: tentou mas não submeteu -------------------------------------
-        if rules_cfg["S3"]["enabled"] and inicio in class_set and marco not in class_set:
-            affected["S3"].add(uid)
+        # if rules_cfg["S3"]["enabled"] and inicio in class_set and marco not in class_set:
+        #     affected["S3"].add(uid)
 
         # -- S4: revisita aos materiais após submissão -----------------------
-        if rules_cfg["S4"]["enabled"] and first_marco_i >= 0:
-            if mode == "tempo":
-                revisit = any(
-                    _base_class(e["event"]) == prep and e["time"] > marco_t for e in flat
-                )
-            else:
-                revisit = prep in classes[first_marco_i + 1 :]
-            if revisit:
-                affected["S4"].add(uid)
+        # if rules_cfg["S4"]["enabled"] and first_marco_i >= 0:
+        #     if mode == "tempo":
+        #         revisit = any(
+        #             _base_class(e["event"]) == prep and e["time"] > marco_t for e in flat
+        #         )
+        #     else:
+        #         revisit = prep in classes[first_marco_i + 1 :]
+        #     if revisit:
+        #         affected["S4"].add(uid)
 
         # -- S5: visualizou mas nunca tentou ---------------------------------
-        if rules_cfg["S5"]["enabled"] and entrada in class_set and inicio not in class_set:
-            affected["S5"].add(uid)
+        # if rules_cfg["S5"]["enabled"] and entrada in class_set and inicio not in class_set:
+        #     affected["S5"].add(uid)
 
         # -- S6: submissão rápida após tentativa -----------------------------
-        if rules_cfg["S6"]["enabled"] and inicio in class_set and marco in class_set:
-            if p["modo_rapidez"] == "mesma_sessao":
-                inicio_t = flat[classes.index(inicio)]["time"]
-                marco_after = [e["time"] for e in flat if _base_class(e["event"]) == marco and e["time"] >= inicio_t]
-                if marco_after and (min(marco_after) - inicio_t) <= session_gap:
-                    affected["S6"].add(uid)
-            else:  # passos_adjacentes
-                if inicio in deduped:
-                    di = deduped.index(inicio)
-                    if di + 1 < len(deduped) and deduped[di + 1] == marco:
-                        affected["S6"].add(uid)
+        # if rules_cfg["S6"]["enabled"] and inicio in class_set and marco in class_set:
+        #     if p["modo_rapidez"] == "mesma_sessao":
+        #         inicio_t = flat[classes.index(inicio)]["time"]
+        #         marco_after = [e["time"] for e in flat if _base_class(e["event"]) == marco and e["time"] >= inicio_t]
+        #         if marco_after and (min(marco_after) - inicio_t) <= session_gap:
+        #             affected["S6"].add(uid)
+        #     else:  # passos_adjacentes
+        #         if inicio in deduped:
+        #             di = deduped.index(inicio)
+        #             if di + 1 < len(deduped) and deduped[di + 1] == marco:
+        #                 affected["S6"].add(uid)
 
         # -- S7: submissão sem participação em fórum -------------------------
-        if rules_cfg["S7"]["enabled"] and marco in class_set:
-            if forum not in class_set:
+        if rules_cfg["S7"]["enabled"] and first_marco_i >= 0:
+            if forum not in classes[:first_marco_i]:
                 affected["S7"].add(uid)
-                if gr is not None:
-                    grades_no_forum.append(gr)
-            elif gr is not None:
-                grades_forum.append(gr)
 
-        # -- S8: fórum sem entrega posterior ---------------------------------
-        if rules_cfg["S8"]["enabled"] and forum in class_set:
-            first_forum_i = classes.index(forum)
-            if mode == "tempo":
-                forum_t = flat[first_forum_i]["time"]
-                has_sub_after = any(
-                    _base_class(e["event"]) == marco and e["time"] >= forum_t for e in flat
-                )
-            else:
-                has_sub_after = marco in classes[first_forum_i:]
-            if not has_sub_after:
+        # -- S8: submissão sem acesso ao fórum (forum_vis) -------------------
+        if rules_cfg["S8"]["enabled"] and first_marco_i >= 0:
+            if forum_vis not in classes[:first_marco_i]:
                 affected["S8"].add(uid)
 
         # -- S9: pouco consumo de material antes da entrega ------------------
-        if rules_cfg["S9"]["enabled"] and first_marco_i >= 0:
-            n_prep = classes[:first_marco_i].count(prep)
-            if n_prep <= p["max_materiais"]:
-                affected["S9"].add(uid)
+        # if rules_cfg["S9"]["enabled"] and first_marco_i >= 0:
+        #     n_prep = classes[:first_marco_i].count(prep)
+        #     if n_prep <= p["max_materiais"]:
+        #         affected["S9"].add(uid)
 
         # -- S10: visualizou mas abandonou -----------------------------------
-        if rules_cfg["S10"]["enabled"] and entrada in class_set and inicio not in class_set and marco not in class_set:
-            affected["S10"].add(uid)
+        # if rules_cfg["S10"]["enabled"] and entrada in class_set and inicio not in class_set and marco not in class_set:
+        #     affected["S10"].add(uid)
 
         # -- S11: navegação superficial --------------------------------------
-        s11_nav_events = rules_cfg["S11"].get("nav_events", nav_events)
-        n_nav = sum(1 for c in classes if c in s11_nav_events)
-        if rules_cfg["S11"]["enabled"] and n_nav >= p["min_eventos_navegacao"] and entrada not in class_set:
-            affected["S11"].add(uid)
-
-    # narrativa de desempenho para S7
-    forum_delta = None
-    if grades_forum and grades_no_forum:
-        forum_delta = round(
-            sum(grades_forum) / len(grades_forum) - sum(grades_no_forum) / len(grades_no_forum), 3
-        )
+        # s11_nav_events = rules_cfg["S11"].get("nav_events", nav_events)
+        # n_nav = sum(1 for c in classes if c in s11_nav_events)
+        # if rules_cfg["S11"]["enabled"] and n_nav >= p["min_eventos_navegacao"] and entrada not in class_set:
+        #     affected["S11"].add(uid)
 
     stories_out: list[dict] = []
     for rule in STORY_CATALOG:
+        if rule.category in HIDDEN_STORY_CATEGORIES:
+            continue
         if not rules_cfg[rule.id]["enabled"]:
             continue
         ids = affected[rule.id]
@@ -440,17 +434,15 @@ def evaluate_stories(
         pct = n / total
         if pct < min_impact:
             continue
-        question = rule.question_template
-        if rule.id == "S7" and forum_delta is not None:
-            question += f" (Δ nota ≈ {forum_delta:+.3f}; risco < {low:.0%})"
+        pct_display = round(pct * 100, 1)
         stories_out.append({
             "id": rule.id,
             "category": rule.category,
             "title": rule.title,
-            "question": question,
+            "question": _fill_statement(rule.question_template, pct=pct_display, count=n),
             "highlight": rule.highlight,
             "affected_count": n,
-            "affected_pct": round(pct * 100, 1),
+            "affected_pct": pct_display,
             "affected_users": list(ids)[:500],
             "params": rule.params,
         })

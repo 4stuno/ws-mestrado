@@ -199,7 +199,7 @@ Para cada `userid`:
 
 1. Ordena eventos por `t`.
 2. Aplica mapeamento → `event_class`.
-3. Remove o primeiro evento (`pop(0)` do script original).
+3. Remove o primeiro evento **somente se** for `course_vis` (`pop(0)`). Se a sequência já começa por outro tipo (material, atividade, fórum etc.), o evento é mantido.
 4. **Corte semântico:** percorre de trás para frente até encontrar o primeiro `assignment_sub`; só eventos a partir desse ponto entram na sequência analítica.
 5. Aplica simplificações (seção 6).
 

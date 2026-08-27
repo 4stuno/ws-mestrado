@@ -6,8 +6,6 @@ import {
   IconClock,
   IconMessages,
   IconRoute,
-  IconRun,
-  IconUserExclamation,
 } from "@tabler/icons-react";
 import type { Story } from "@/lib/types";
 import { highlightColor } from "@/lib/format";
@@ -16,9 +14,7 @@ import { HIGHLIGHT_LABELS } from "@/lib/events";
 const CATEGORY_META: Record<string, { label: string; icon: typeof IconClock }> = {
   deadline: { label: "Prazo e urgência", icon: IconClock },
   prep: { label: "Preparação e percurso", icon: IconRoute },
-  bottleneck: { label: "Gargalos de conversão", icon: IconUserExclamation },
   social: { label: "Fórum e engajamento social", icon: IconMessages },
-  rhythm: { label: "Ritmo de estudo", icon: IconRun },
   profile: { label: "Perfis comportamentais", icon: IconBulb },
 };
 
@@ -39,6 +35,9 @@ interface Props {
 
 export function StoriesPanel({ stories, storyFilterInfo }: Props) {
   const grouped = stories.reduce<Record<string, Story[]>>((acc, s) => {
+    if (s.category === "bottleneck") {
+      return acc;
+    }
     (acc[s.category] ??= []).push(s);
     return acc;
   }, {});
@@ -69,7 +68,7 @@ export function StoriesPanel({ stories, storyFilterInfo }: Props) {
         </Alert>
       )}
       <ScrollArea h={400} offsetScrollbars type="auto">
-        {stories.length === 0 && (
+        {Object.keys(grouped).length === 0 && (
           <Text size="sm" c="dimmed" ta="center" py="lg">
             Nenhuma narrativa atingiu o limiar mínimo com os filtros atuais.
           </Text>
@@ -111,7 +110,7 @@ export function StoriesPanel({ stories, storyFilterInfo }: Props) {
                   <Text size="sm" fw={700} mt={8}>
                     {s.title}
                   </Text>
-                  <Text size="xs" c="dimmed" mt={6} fs="italic">
+                  <Text size="xs" c="dimmed" mt={6}>
                     {s.question}
                   </Text>
                   <Text size="xs" mt={8} fw={600} c="indigo.7">

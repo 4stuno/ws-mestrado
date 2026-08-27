@@ -296,13 +296,13 @@ export function FilterPanel({ meta, filters, onChange, filtersPending }: Props) 
                   onChange={(v) => setStory({ modo_analise: v as StoryParams["modo_analise"] })}
                 />
                 <Text size="xs" c="dimmed" mt={4}>
-                  Passos = ordem na trilha (1º, 2º, 3º…). Tempo = data/hora real. Afeta 1, 4, 8.
+                  Passos = ordem na trilha (1º, 2º, 3º…). Tempo = data/hora real. Afeta 1 e 4.
                 </Text>
               </div>
 
               <MultiSelect
                 label="Fluxo ideal (ordem das etapas)"
-                description="Caminho esperado. Afeta estórias 1, 2, 9."
+                description="Caminho esperado. Afeta estórias 1 e 2."
                 data={eventSelectData}
                 value={sp.fluxo_ideal}
                 onChange={(v) => setStory({ fluxo_ideal: v })}
@@ -312,7 +312,7 @@ export function FilterPanel({ meta, filters, onChange, filtersPending }: Props) 
 
               <Select
                 label="Evento marco (entrega)"
-                description="Âncora de 'antes/depois'. Afeta 1, 2, 3, 4, 6, 7, 8, 9, 10."
+                description="Âncora de 'antes/depois'. Afeta 1, 2, 3, 4, 7, 8, 10."
                 data={eventSelectData}
                 value={sp.evento_marco}
                 onChange={(v) => v && setStory({ evento_marco: v })}
@@ -321,7 +321,7 @@ export function FilterPanel({ meta, filters, onChange, filtersPending }: Props) 
               <Group grow>
                 <Select
                   label="Evento preparação"
-                  description="Estudar material. Afeta 1, 4, 9."
+                  description="Estudar material. Afeta 1 e 4."
                   data={eventSelectData}
                   value={sp.evento_preparacao}
                   onChange={(v) => v && setStory({ evento_preparacao: v })}
@@ -338,14 +338,14 @@ export function FilterPanel({ meta, filters, onChange, filtersPending }: Props) 
               <Group grow>
                 <Select
                   label="Evento início"
-                  description="Começou a tentativa. Afeta 3, 5, 6, 10."
+                  description="Começou a tentativa. Afeta 3, 5, 10."
                   data={eventSelectData}
                   value={sp.evento_inicio}
                   onChange={(v) => v && setStory({ evento_inicio: v })}
                 />
                 <Select
                   label="Evento fórum"
-                  description="O que conta como fórum. Afeta 7, 8."
+                  description="Participação no fórum. Afeta 7. A 8 usa forum_vis (acesso)."
                   data={eventSelectData}
                   value={sp.evento_forum}
                   onChange={(v) => v && setStory({ evento_forum: v })}
@@ -394,34 +394,6 @@ export function FilterPanel({ meta, filters, onChange, filtersPending }: Props) 
                   ]}
                 />
               </div>
-
-              <Select
-                label="Critério de 'submissão rápida'"
-                description="O que conta como rápido. Afeta 6."
-                data={[
-                  { value: "passos_adjacentes", label: "Passos adjacentes (tentativa → submissão)" },
-                  { value: "mesma_sessao", label: "Mesma sessão de estudo" },
-                ]}
-                value={sp.modo_rapidez}
-                onChange={(v) => v && setStory({ modo_rapidez: v as StoryParams["modo_rapidez"] })}
-              />
-
-              <Group grow>
-                <NumberInput
-                  label="Máx. materiais (pouco consumo)"
-                  description="Afeta 9."
-                  min={0}
-                  value={sp.max_materiais}
-                  onChange={(v) => setStory({ max_materiais: Number(v) || 0 })}
-                />
-                <NumberInput
-                  label="Mín. eventos de navegação"
-                  description="Afeta 11."
-                  min={1}
-                  value={sp.min_eventos_navegacao}
-                  onChange={(v) => setStory({ min_eventos_navegacao: Number(v) || 1 })}
-                />
-              </Group>
 
               <div>
                 <Text size="sm" fw={500}>

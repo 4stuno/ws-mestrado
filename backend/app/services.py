@@ -11,7 +11,7 @@ from app.data_loader import store
 from app.event_pipeline import declutter_events
 from app.sequence import list_scenarios, prepare_sequences
 from app.schemas import DEFAULT_SCENARIO
-from app.stories import STORY_CATALOG, adherence_score, evaluate_stories
+from app.stories import HIDDEN_STORY_CATEGORIES, STORY_CATALOG, adherence_score, evaluate_stories
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +256,7 @@ def get_meta() -> dict:
             "inactivity_days": settings.inactivity_days,
             "resource_prep_days": settings.resource_prep_days,
         },
-        "story_categories": list({s.category for s in STORY_CATALOG}),
+        "story_categories": list({s.category for s in STORY_CATALOG if s.category not in HIDDEN_STORY_CATEGORIES}),
         "scenarios": list_scenarios(),
         "default_scenario": DEFAULT_SCENARIO,
     }
